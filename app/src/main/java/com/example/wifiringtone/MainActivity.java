@@ -2,16 +2,16 @@ package com.example.wifiringtone;
 
 import android.database.Cursor;
 import android.media.RingtoneManager;
-import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -28,7 +28,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        makeRingtoneList(this.ringtones);
+        makeRingtoneList();
+        saveOptionsListener();
     }
 
     protected Map<String, String> getRingtones() {
@@ -54,18 +55,41 @@ public class MainActivity extends AppCompatActivity {
         return new TreeMap<>(ringtones);
     }
 
-    protected void makeRingtoneList(Map<String, String> ringtones) {
+    protected void makeRingtoneList() {
         RadioGroup ringtoneRadios = new RadioGroup(this);
         ringtoneRadios.setOrientation(RadioGroup.VERTICAL);
 
-        int idx = 1;
-        for(String ringtone : ringtones.keySet()) {
-            RadioButton radio = new RadioButton(this);
+        RadioButton radio = new RadioButton(this);
+        radio.setId(1);
+        radio.setText("None");
+        ringtoneRadios.addView(radio);
+
+
+        int idx = 2;
+        for(String ringtone : this.ringtones.keySet()) {
+            radio = new RadioButton(this);
             radio.setId(idx++);
             radio.setText(ringtone);
             ringtoneRadios.addView(radio);
         }
 
         ((ViewGroup) findViewById(R.id.ringtone_group)).addView(ringtoneRadios);
+    }
+
+    protected void saveOptionsListener() {
+        ((Button) findViewById(R.id.submit_button)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                EditText wifi_input = (EditText) findViewById(R.id.wifi_network);
+
+                RadioGroup radios = (RadioGroup) findViewById(R.id.ringtone_group);
+                int ringtone_id = radios.getCheckedRadioButtonId();
+                Log.d("ringtone ID", "Value: " + ringtone_id);
+                RadioButton selected_radio = (RadioButton) findViewById(ringtone_id);
+
+//                Log.d("Ringtone", selected_radio.getText().toString());
+                Log.d("Wifi", wifi_input.getText().toString());
+            }
+        });
     }
 }
