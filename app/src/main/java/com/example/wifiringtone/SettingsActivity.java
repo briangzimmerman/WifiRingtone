@@ -1,5 +1,6 @@
 package com.example.wifiringtone;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.media.MediaPlayer;
@@ -23,15 +24,21 @@ public class SettingsActivity extends AppCompatActivity {
     private final String PREF_NAME = "WIFI_RINGTONE_PREFS";
     private SharedPreferences ringtone_settings;
     private MediaPlayer ringtone;
+    private String wifi_network = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         this.ringtones = getRingtones();
         Log.d("TESTING", this.ringtones.toString());
 
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
+
+        Bundle b = getIntent().getExtras();
+        if(b != null) {
+            this.wifi_network = b.getString("wifi_network");
+            ((EditText) findViewById(R.id.wifi_network)).setText(this.wifi_network);
+        }
 
         this.ringtone_settings = getApplicationContext().getSharedPreferences(
                 this.PREF_NAME,
@@ -70,18 +77,21 @@ public class SettingsActivity extends AppCompatActivity {
     protected void makeRingtoneList() {
         RadioGroup ringtoneRadios = (RadioGroup) findViewById(R.id.ringtone_group);
         ringtoneRadios.setOrientation(RadioGroup.VERTICAL);
+        String saved_ringtone = this.ringtone_settings.getString(this.wifi_network, "");
 
         int id = 1;
 
         RadioButton radio = new RadioButton(this);
         radio.setId(id++);
         radio.setText("None");
+        radio.setChecked(saved_ringtone.equals(""));
         ringtoneRadios.addView(radio);
 
-        for(String ringtone : this.ringtones.keySet()) {
+        for(Map.Entry<String, String> entry : this.ringtones.entrySet()) {
             radio = new RadioButton(this);
             radio.setId(id++);
-            radio.setText(ringtone);
+            radio.setText(entry.getKey());
+            radio.setChecked(entry.getValue().equals(saved_ringtone));
             ringtoneRadios.addView(radio);
         }
     }
@@ -118,6 +128,9 @@ public class SettingsActivity extends AppCompatActivity {
                     return; //Error no network
                 } else if(ringtone_id == -1) {
                     return; //Error no ringtone
+                } else if(!SettingsActivity.this.wifi_network.equals(wifi_network) &&
+                          SettingsActivity.this.ringtone_settings.getString(wifi_network, null) != null) {
+                    return; //Error double wifi rule
                 } else if(ringtone_id == 1) {
                     ringtone_file = "";
                 } else {
@@ -125,6 +138,14 @@ public class SettingsActivity extends AppCompatActivity {
                 }
 
                 SettingsActivity.this.saveOptions(wifi_network, ringtone_file);
+
+                if(SettingsActivity.this.ringtone != null && SettingsActivity.this.ringtone.isPlaying()) {
+                    SettingsActivity.this.ringtone.stop();
+                    SettingsActivity.this.ringtone.release();
+                }
+
+                Intent intent = new Intent(SettingsActivity.this, MainActivity.class);
+                startActivity(intent);
             }
         });
     }
@@ -133,7 +154,14 @@ public class SettingsActivity extends AppCompatActivity {
         ((Button) findViewById(R.id.delete_button)).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                return;
+                SharedPreferences.Editor setting_edit = SettingsActivity.this.ringtone_settings.edit();
+
+                setting_edit.remove(SettingsActivity.this.wifi_network);
+
+                setting_edit.apply();
+
+                Intent intent = new Intent(SettingsActivity.this, MainActivity.class);
+                startActivity(intent);
             }
         });
     }
@@ -143,7 +171,13 @@ public class SettingsActivity extends AppCompatActivity {
         Log.d("Ringtone path", ringtone_file);
 
         SharedPreferences.Editor setting_edit = this.ringtone_settings.edit();
+
+        if(!this.wifi_network.equals(wifi_network)) {
+            setting_edit.remove(this.wifi_network);
+        }
+
         setting_edit.putString(wifi_network, ringtone_file);
+
         setting_edit.apply();
 
         showInfo("Settings Saved");
