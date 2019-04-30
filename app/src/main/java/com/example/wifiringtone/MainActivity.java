@@ -35,6 +35,8 @@ public class MainActivity extends AppCompatActivity {
 
         populateSaved();
         setNewListener();
+
+        startService(new Intent(this, RingtoneService.class));
     }
 
     protected void populateSaved() {
