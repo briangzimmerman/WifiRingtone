@@ -11,13 +11,12 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
-import android.net.wifi.SupplicantState;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.provider.Settings;
 import android.util.Log;
-
-import static android.content.Context.NOTIFICATION_SERVICE;
 
 public class WifiBroadcastReceiver extends BroadcastReceiver {
     private static final int NOTIF_ID = 1;
@@ -29,6 +28,7 @@ public class WifiBroadcastReceiver extends BroadcastReceiver {
     private String current_ringtone = "";
 
     public WifiBroadcastReceiver(Context context, NotificationManager nm) {
+
         this.context = context;
         this.nm = nm;
         this.ringtone_settings = context.getSharedPreferences(this.PREF_NAME, 0);
@@ -42,8 +42,12 @@ public class WifiBroadcastReceiver extends BroadcastReceiver {
         this.nm.createNotificationChannel(nc);
 
         Uri defaultRingtoneUri = RingtoneManager.getActualDefaultRingtoneUri(this.context, RingtoneManager.TYPE_RINGTONE);
-        Ringtone defaultRingtone = RingtoneManager.getRingtone(this.context, defaultRingtoneUri);
-        this.current_ringtone = defaultRingtone.getTitle(this.context);
+        if(Uri.EMPTY.equals(defaultRingtoneUri)) {
+            this.current_ringtone = "None";
+        } else {
+            Ringtone defaultRingtone = RingtoneManager.getRingtone(this.context, defaultRingtoneUri);
+            this.current_ringtone = defaultRingtone.getTitle(this.context);
+        }
 
         Log.d("Current Ringtone:", this.current_ringtone);
 
@@ -52,15 +56,24 @@ public class WifiBroadcastReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        String action = intent.getAction();
-        if (WifiManager.SUPPLICANT_STATE_CHANGED_ACTION .equals(action)) {
-            SupplicantState state = intent.getParcelableExtra(WifiManager.EXTRA_NEW_STATE);
-            if (SupplicantState.isValidState(state)
-                    && state == SupplicantState.COMPLETED) {
+        NetworkInfo info = intent.getParcelableExtra(WifiManager.EXTRA_NETWORK_INFO);
+        if(info != null && info.isConnected()) {
+            String setRingtone = ringtoneToSet();
 
-                String setRingtone = ringtoneToSet();
-                this.current_ringtone = setRingtone;
+            if(setRingtone.isEmpty()) {
+                this.current_ringtone = "None";
+            } else {
+                Ringtone ringtone = RingtoneManager.getRingtone(this.context, Uri.parse(setRingtone));
+                this.current_ringtone = ringtone.getTitle(this.context);
             }
+
+            RingtoneManager.setActualDefaultRingtoneUri(this.context, RingtoneManager.TYPE_RINGTONE, Uri.parse(setRingtone));
+
+            this.showNotification();
+        } else {
+            this.current_ringtone = "None";
+            RingtoneManager.setActualDefaultRingtoneUri(this.context, RingtoneManager.TYPE_RINGTONE, Uri.parse(""));
+            this.showNotification();
         }
     }
 
@@ -71,11 +84,11 @@ public class WifiBroadcastReceiver extends BroadcastReceiver {
         WifiInfo wifi = wifiManager.getConnectionInfo();
 
         if (wifi != null) {
-            // get current router Mac address
-            ringtone = wifi.getBSSID();
-
-            Log.d("Ringtone to set", ringtone);
+            Log.d("SSID", wifi.getSSID());
+            ringtone = this.ringtone_settings.getString(wifi.getSSID(), "");
         }
+
+        Log.d("Ringtone To Set:", ringtone);
 
         return ringtone;
     }

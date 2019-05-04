@@ -8,6 +8,7 @@ import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
@@ -36,7 +37,15 @@ public class MainActivity extends AppCompatActivity {
         populateSaved();
         setNewListener();
 
-        startService(new Intent(this, RingtoneService.class));
+        if(!Settings.System.canWrite(getApplicationContext())) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
+            intent.setData(Uri.parse("package:"+getPackageName()));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+//            return;
+        } else {
+            startService(new Intent(this, RingtoneService.class));
+        }
     }
 
     protected void populateSaved() {
