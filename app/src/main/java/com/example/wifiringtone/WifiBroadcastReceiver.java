@@ -18,6 +18,8 @@ import android.net.wifi.WifiManager;
 import android.provider.Settings;
 import android.util.Log;
 
+import java.util.Map;
+
 public class WifiBroadcastReceiver extends BroadcastReceiver {
     private static final int NOTIF_ID = 1;
     private static final String NOTIF_CHANNEL_ID = "ringtone_channel_id";
@@ -28,7 +30,6 @@ public class WifiBroadcastReceiver extends BroadcastReceiver {
     private String current_ringtone = "";
 
     public WifiBroadcastReceiver(Context context, NotificationManager nm) {
-
         this.context = context;
         this.nm = nm;
         this.ringtone_settings = context.getSharedPreferences(this.PREF_NAME, 0);
@@ -84,11 +85,14 @@ public class WifiBroadcastReceiver extends BroadcastReceiver {
         WifiInfo wifi = wifiManager.getConnectionInfo();
 
         if (wifi != null) {
-            Log.d("SSID", wifi.getSSID());
-            ringtone = this.ringtone_settings.getString(wifi.getSSID(), "");
+            String ssid = wifi.getSSID();
+            ssid = ssid.substring(1, ssid.length() - 1);
+
+            Log.d("SSID", ssid);
+            ringtone = this.ringtone_settings.getString(ssid, "");
         }
 
-        Log.d("Ringtone To Set:", ringtone);
+        Log.d("Ringtone To Set:", "Ringtone: " + ringtone);
 
         return ringtone;
     }

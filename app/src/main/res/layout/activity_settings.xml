@@ -33,7 +33,7 @@
         <ScrollView
             android:id="@+id/ringtone_container"
             android:layout_width="match_parent"
-            android:layout_height="403dp">
+            android:layout_height="493dp">
 
             <RadioGroup
                 android:id="@+id/ringtone_group"
